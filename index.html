@@ -117,9 +117,9 @@
 <div class="topbar">
   <div class="wordmark">KEO &middot; WRITE</div>
   <div class="menu-items">
-    <div class="menu-item">File</div>
-    <div class="menu-item">Edit</div>
-    <div class="menu-item">View</div>
+    <div class="menu-item" id="menuFile">File</div>
+    <div class="menu-item" id="menuEdit">Edit</div>
+    <div class="menu-item" id="menuView">View</div>
   </div>
   <div class="topbar-right">
     <div class="doc-title-bar" id="docTitleBar">No document open</div>
@@ -177,6 +177,89 @@
 </div>
 
 <script>
+  // ── State ────────────────────────────────────────────────────────────────
+  let messages = [];
+  let documents = [];
+  let activeDocId = null;
+
+  const dialogueEl  = document.getElementById('dialogue');
+  const inputEl     = document.getElementById('keoInput');
+  const sendBtn     = document.getElementById('keoSend');
+  const navListEl   = document.getElementById('navList');
+  const docPageEl   = document.getElementById('docPage');
+  const docTitleBar = document.getElementById('docTitleBar');
+  const wordCountEl = document.getElementById('wordCount');
+
+  // ── Document list ────────────────────────────────────────────────────────
+  async function loadDocuments() {
+    try {
+      const res = await fetch('/api/keo?resource=documents');
+      const data = await res.json();
+      documents = data.documents || [];
+      renderNav();
+    } catch (err) {
+      console.error('Failed to load documents:', err);
+    }
+  }
+
+  function renderNav() {
+    if (!documents.length) {
+      navListEl.className = 'nav-empty';
+      navListEl.textContent = 'No documents yet. Start a conversation with Keo to create one.';
+      return;
+    }
+    navListEl.className = '';
+    navListEl.innerHTML = documents.map(d =>
+      '<div class="nav-item' + (d.id === activeDocId ? ' active' : '') + '" data-id="' + d.id + '">' +
+      '\uD83D\uDCC4 ' + escapeHtml(d.title) +
+      '</div>'
+    ).join('');
+    navListEl.querySelectorAll('.nav-item').forEach(el => {
+      el.addEventListener('click', () => openDocument(el.dataset.id));
+    });
+  }
+
+  async function openDocument(id) {
+    try {
+      const res = await fetch('/api/keo?resource=document&id=' + id);
+      const data = await res.json();
+      if (!data.document) return;
+      activeDocId = data.document.id;
+      docTitleBar.textContent = data.document.title + ' \u00B7 ' + data.document.mode;
+      docPageEl.innerHTML =
+        '<div style="font-size:9px;letter-spacing:0.3em;color:#8a857c;text-transform:uppercase;margin-bottom:24px;border-bottom:0.5px solid rgba(26,23,20,0.1);padding-bottom:12px;">' +
+        escapeHtml(data.document.title) + ' &middot; v' + (data.document.version || 1) +
+        '</div>' +
+        '<div style="font-size:12px;line-height:1.9;color:#1a1714;font-family:Georgia,serif;white-space:pre-wrap;">' +
+        escapeHtml(data.document.content || '') +
+        '</div>';
+      wordCountEl.textContent = (data.document.word_count || 0) + ' words';
+      renderNav();
+    } catch (err) {
+      console.error('Failed to open document:', err);
+    }
+  }
+
+  function escapeHtml(s) {
+    return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  // ── Menu wiring ──────────────────────────────────────────────────────────
+  document.getElementById('menuFile').addEventListener('click', () => {
+    activeDocId = null;
+    docTitleBar.textContent = 'No document open';
+    docPageEl.innerHTML =
+      '<div class="doc-empty-state">' +
+      '<div class="doc-empty-title">Nothing open yet</div>' +
+      '<div class="doc-empty-sub">Tell Keo what you\\u2019re working on.</div>' +
+      '<div class="doc-empty-hint">Resume &middot; Email &middot; Proposal &middot; Review Response</div>' +
+      '</div>';
+    wordCountEl.textContent = '0 words';
+    renderNav();
+  });
+  document.getElementById('menuEdit').addEventListener('click', () => loadDocuments());
+  document.getElementById('menuView').addEventListener('click', () => loadDocuments());
+
   // ── Mini visualizer cycling ──────────────────────────────────────────────
   const scripts = [
     { ch: 'A',      label: 'Latin'      },
@@ -205,12 +288,7 @@
   }
   setInterval(cycleViz, 3200);
 
-  // ── Conversation state ───────────────────────────────────────────────────
-  let messages = [];
-  const dialogueEl = document.getElementById('dialogue');
-  const inputEl = document.getElementById('keoInput');
-  const sendBtn = document.getElementById('keoSend');
-
+  // ── Conversation ─────────────────────────────────────────────────────────
   function renderDialogue() {
     if (!messages.length) {
       dialogueEl.innerHTML = "<div class=\"keo-empty\">Tell me what you're working on &mdash; a resume, an email, a response to a review. I'll take it from there.</div>";
@@ -219,8 +297,7 @@
     dialogueEl.innerHTML = messages.map(m => {
       const cls = m.role === 'user' ? 'ron-msg' : 'keo-msg';
       const who = m.role === 'user' ? 'RON' : 'KEO';
-      const text = (m.text || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-      return '<div class="' + cls + '"><div class="msg-who">' + who + '</div>' + text + '</div>';
+      return '<div class="' + cls + '"><div class="msg-who">' + who + '</div>' + escapeHtml(m.text) + '</div>';
     }).join('');
     dialogueEl.scrollTop = dialogueEl.scrollHeight;
   }
@@ -249,8 +326,14 @@
         replyText = 'Something went wrong: ' + data.error;
       }
 
-      messages.push({ role: 'assistant', text: replyText || '…' });
+      messages.push({ role: 'assistant', text: replyText || '\u2026' });
       renderDialogue();
+
+      // If Keo saved a document, refresh the list and open it
+      if (data.document_saved && data.document_saved.ok) {
+        await loadDocuments();
+        openDocument(data.document_saved.id);
+      }
     } catch (err) {
       messages.push({ role: 'assistant', text: 'Connection error: ' + String(err) });
       renderDialogue();
@@ -267,6 +350,8 @@
     }
   });
 
+  // ── Init ─────────────────────────────────────────────────────────────────
+  loadDocuments();
   console.log('Keo workspace loaded.');
 </script>
 

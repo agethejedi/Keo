@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS keo_sessions (id INTEGER PRIMARY KEY AUTOINCREMENT, document_id INTEGER REFERENCES keo_documents(id), summary TEXT, transcript TEXT, extracted_memory TEXT, created_at TEXT DEFAULT (datetime('now')));

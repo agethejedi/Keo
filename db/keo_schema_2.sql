@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS keo_versions (id INTEGER PRIMARY KEY AUTOINCREMENT, document_id INTEGER REFERENCES keo_documents(id), version INTEGER DEFAULT 1, content TEXT NOT NULL, summary TEXT, created_at TEXT DEFAULT (datetime('now')));

@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS keo_documents (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, type TEXT DEFAULT 'document', mode TEXT DEFAULT 'document', content TEXT, plain_text TEXT, word_count INTEGER DEFAULT 0, project_id TEXT, tags TEXT, status TEXT DEFAULT 'draft', created_at TEXT DEFAULT (datetime('now')), updated_at TEXT DEFAULT (datetime('now')));
