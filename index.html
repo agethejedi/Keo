@@ -35,11 +35,37 @@
   .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
   .doc-title-bar { font-size: 10px; color: rgba(200,196,240,0.35); }
 
+  /* ── Ribbon ── */
+  .ribbon {
+    height: 32px; background: #080705; border-bottom: 0.5px solid rgba(200,196,240,0.06);
+    display: flex; align-items: center; padding: 0 14px; flex-shrink: 0; gap: 4px;
+  }
+  .ribbon-label { font-size: 7px; letter-spacing: 0.22em; color: rgba(200,196,240,0.22); margin-right: 8px; text-transform: uppercase; }
+  .mode-chip {
+    font-size: 7px; letter-spacing: 0.18em; padding: 3px 9px; border-radius: 2px; cursor: pointer;
+    text-transform: uppercase; border: 0.5px solid rgba(200,196,240,0.12); color: rgba(200,196,240,0.32);
+    transition: all 0.15s; background: transparent;
+  }
+  .mode-chip:hover { color: rgba(200,196,240,0.6); border-color: rgba(200,196,240,0.3); }
+  .mode-chip.active { color: rgba(200,196,240,0.95); border-color: rgba(200,196,240,0.55); background: rgba(200,196,240,0.08); }
+  .ribbon-action {
+    margin-left: auto; font-size: 7px; letter-spacing: 0.18em; padding: 3px 9px; border-radius: 2px; cursor: pointer;
+    text-transform: uppercase; border: 0.5px solid rgba(52,211,153,0.2); color: rgba(52,211,153,0.55);
+    background: rgba(52,211,153,0.04); transition: all 0.15s;
+  }
+  .ribbon-action:hover { color: rgba(52,211,153,0.85); border-color: rgba(52,211,153,0.4); }
+  .ribbon-delete {
+    font-size: 7px; letter-spacing: 0.18em; padding: 3px 9px; border-radius: 2px; cursor: pointer;
+    text-transform: uppercase; border: 0.5px solid rgba(251,113,133,0.2); color: rgba(251,113,133,0.5);
+    background: transparent; transition: all 0.15s;
+  }
+  .ribbon-delete:hover { color: rgba(251,113,133,0.85); border-color: rgba(251,113,133,0.4); }
+
   /* ── Body layout ── */
   .body-layout {
     display: grid;
     grid-template-columns: 196px 1fr 272px;
-    height: calc(100vh - 38px - 22px);
+    height: calc(100vh - 38px - 32px - 22px);
   }
 
   /* ── Navigator ── */
@@ -126,6 +152,18 @@
   </div>
 </div>
 
+<div class="ribbon" id="ribbon">
+  <span class="ribbon-label">Mode</span>
+  <div class="mode-chip active" data-mode="document">Document</div>
+  <div class="mode-chip" data-mode="email">Email</div>
+  <div class="mode-chip" data-mode="message">Message</div>
+  <div class="mode-chip" data-mode="social">Social</div>
+  <div class="mode-chip" data-mode="review">Review</div>
+  <div class="mode-chip" data-mode="brief">Brief</div>
+  <div class="ribbon-delete" id="ribbonDelete" style="display:none;">DELETE</div>
+  <div class="ribbon-action" id="ribbonNew">+ NEW DRAFT</div>
+</div>
+
 <div class="body-layout">
 
   <!-- Navigator -->
@@ -181,14 +219,44 @@
   let messages = [];
   let documents = [];
   let activeDocId = null;
+  let currentMode = 'document';
 
-  const dialogueEl  = document.getElementById('dialogue');
-  const inputEl     = document.getElementById('keoInput');
-  const sendBtn     = document.getElementById('keoSend');
-  const navListEl   = document.getElementById('navList');
-  const docPageEl   = document.getElementById('docPage');
-  const docTitleBar = document.getElementById('docTitleBar');
-  const wordCountEl = document.getElementById('wordCount');
+  const dialogueEl   = document.getElementById('dialogue');
+  const inputEl      = document.getElementById('keoInput');
+  const sendBtn      = document.getElementById('keoSend');
+  const navListEl    = document.getElementById('navList');
+  const docPageEl    = document.getElementById('docPage');
+  const docTitleBar  = document.getElementById('docTitleBar');
+  const wordCountEl  = document.getElementById('wordCount');
+  const ribbonDelete = document.getElementById('ribbonDelete');
+  const ribbonNew    = document.getElementById('ribbonNew');
+
+  const EMPTY_STATE_HTML =
+    '<div class="doc-empty-state">' +
+    '<div class="doc-empty-title">Nothing open yet</div>' +
+    '<div class="doc-empty-sub">Tell Keo what you\u2019re working on.</div>' +
+    '<div class="doc-empty-hint">Resume &middot; Email &middot; Proposal &middot; Review Response</div>' +
+    '</div>';
+
+  function escapeHtml(s) {
+    return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  // ── Mode chips ───────────────────────────────────────────────────────────
+  document.querySelectorAll('.mode-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('.mode-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      currentMode = chip.dataset.mode;
+    });
+  });
+
+  function setModeChip(mode) {
+    currentMode = mode;
+    document.querySelectorAll('.mode-chip').forEach(c => {
+      c.classList.toggle('active', c.dataset.mode === mode);
+    });
+  }
 
   // ── Document list ────────────────────────────────────────────────────────
   async function loadDocuments() {
@@ -209,11 +277,12 @@
       return;
     }
     navListEl.className = '';
-    navListEl.innerHTML = documents.map(d =>
-      '<div class="nav-item' + (d.id === activeDocId ? ' active' : '') + '" data-id="' + d.id + '">' +
-      '\uD83D\uDCC4 ' + escapeHtml(d.title) +
-      '</div>'
-    ).join('');
+    navListEl.innerHTML = documents.map(d => {
+      const icon = { document:'\uD83D\uDCC4', email:'\u2709', message:'\uD83D\uDCAC', social:'\uD83D\uDCF1', review:'\u2B50', brief:'\uD83D\uDCDD' }[d.mode] || '\uD83D\uDCC4';
+      return '<div class="nav-item' + (d.id === activeDocId ? ' active' : '') + '" data-id="' + d.id + '">' +
+        icon + ' ' + escapeHtml(d.title) +
+        '</div>';
+    }).join('');
     navListEl.querySelectorAll('.nav-item').forEach(el => {
       el.addEventListener('click', () => openDocument(el.dataset.id));
     });
@@ -225,40 +294,50 @@
       const data = await res.json();
       if (!data.document) return;
       activeDocId = data.document.id;
+      setModeChip(data.document.mode || 'document');
       docTitleBar.textContent = data.document.title + ' \u00B7 ' + data.document.mode;
-      docPageEl.innerHTML =
-        '<div style="font-size:9px;letter-spacing:0.3em;color:#8a857c;text-transform:uppercase;margin-bottom:24px;border-bottom:0.5px solid rgba(26,23,20,0.1);padding-bottom:12px;">' +
-        escapeHtml(data.document.title) + ' &middot; v' + (data.document.version || 1) +
-        '</div>' +
-        '<div style="font-size:12px;line-height:1.9;color:#1a1714;font-family:Georgia,serif;white-space:pre-wrap;">' +
-        escapeHtml(data.document.content || '') +
-        '</div>';
+      renderDocPage(data.document.title, data.document.content, data.document.version);
       wordCountEl.textContent = (data.document.word_count || 0) + ' words';
+      ribbonDelete.style.display = 'block';
       renderNav();
     } catch (err) {
       console.error('Failed to open document:', err);
     }
   }
 
-  function escapeHtml(s) {
-    return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  function renderDocPage(title, content, version) {
+    docPageEl.innerHTML =
+      '<div style="font-size:9px;letter-spacing:0.3em;color:#8a857c;text-transform:uppercase;margin-bottom:24px;border-bottom:0.5px solid rgba(26,23,20,0.1);padding-bottom:12px;">' +
+      escapeHtml(title) + ' &middot; v' + (version || 1) +
+      '</div>' +
+      '<div style="font-size:12px;line-height:1.9;color:#1a1714;font-family:Georgia,serif;white-space:pre-wrap;">' +
+      escapeHtml(content || '') +
+      '</div>';
   }
 
-  // ── Menu wiring ──────────────────────────────────────────────────────────
-  document.getElementById('menuFile').addEventListener('click', () => {
+  function closeDocument() {
     activeDocId = null;
     docTitleBar.textContent = 'No document open';
-    docPageEl.innerHTML =
-      '<div class="doc-empty-state">' +
-      '<div class="doc-empty-title">Nothing open yet</div>' +
-      '<div class="doc-empty-sub">Tell Keo what you\\u2019re working on.</div>' +
-      '<div class="doc-empty-hint">Resume &middot; Email &middot; Proposal &middot; Review Response</div>' +
-      '</div>';
+    docPageEl.innerHTML = EMPTY_STATE_HTML;
     wordCountEl.textContent = '0 words';
+    ribbonDelete.style.display = 'none';
     renderNav();
-  });
+  }
+
+  async function deleteActiveDocument() {
+    if (!activeDocId) return;
+    if (!confirm('Delete this document? This cannot be undone.')) return;
+    await fetch('/api/keo?id=' + activeDocId, { method: 'DELETE' });
+    closeDocument();
+    await loadDocuments();
+  }
+
+  // ── Menu + ribbon wiring ─────────────────────────────────────────────────
+  document.getElementById('menuFile').addEventListener('click', closeDocument);
   document.getElementById('menuEdit').addEventListener('click', () => loadDocuments());
   document.getElementById('menuView').addEventListener('click', () => loadDocuments());
+  ribbonNew.addEventListener('click', closeDocument);
+  ribbonDelete.addEventListener('click', deleteActiveDocument);
 
   // ── Mini visualizer cycling ──────────────────────────────────────────────
   const scripts = [
@@ -308,14 +387,19 @@
     inputEl.value = '';
     sendBtn.disabled = true;
 
-    messages.push({ role: 'user', text });
+    // Prefix mode context so Keo knows what mode is selected even if not stated
+    const taggedText = '[mode: ' + currentMode + '] ' + text;
+    messages.push({ role: 'user', text: text, sent: taggedText });
     renderDialogue();
 
     try {
       const res = await fetch('/api/keo', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: messages.map(m => ({ role: m.role, content: m.text })) }),
+        body: JSON.stringify({
+          messages: messages.map(m => ({ role: m.role, content: m.sent || m.text })),
+          activeDocId: activeDocId,
+        }),
       });
       const data = await res.json();
 
@@ -329,10 +413,14 @@
       messages.push({ role: 'assistant', text: replyText || '\u2026' });
       renderDialogue();
 
-      // If Keo saved a document, refresh the list and open it
+      // If Keo saved a NEW document, refresh list and open it, syncing mode chip
       if (data.document_saved && data.document_saved.ok) {
         await loadDocuments();
         openDocument(data.document_saved.id);
+      }
+      // If Keo updated the OPEN document, re-render the page in place
+      if (data.document_updated && data.document_updated.ok && activeDocId) {
+        openDocument(activeDocId);
       }
     } catch (err) {
       messages.push({ role: 'assistant', text: 'Connection error: ' + String(err) });
@@ -352,7 +440,7 @@
 
   // ── Init ─────────────────────────────────────────────────────────────────
   loadDocuments();
-  console.log('Keo workspace loaded.');
+  console.log('Keo workspace loaded — all six modes active.');
 </script>
 
 </body>
