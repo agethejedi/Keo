@@ -1,1 +1,274 @@
-<!DOCTYPE html><html><body><h1>Keo Test</h1></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Keo — Write</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    background: #050403;
+    color: rgba(200,196,240,0.7);
+    font-family: ui-monospace, monospace;
+    overflow: hidden;
+  }
+
+  /* ── Top bar ── */
+  .topbar {
+    height: 38px;
+    background: #080705;
+    border-bottom: 0.5px solid rgba(200,196,240,0.08);
+    display: flex;
+    align-items: center;
+    padding: 0 14px;
+    flex-shrink: 0;
+  }
+  .wordmark { font-size: 11px; letter-spacing: 0.22em; color: rgba(200,196,240,0.85); margin-right: 24px; }
+  .menu-items { display: flex; gap: 0; }
+  .menu-item {
+    font-size: 10px; color: rgba(200,196,240,0.38); padding: 0 10px; height: 38px;
+    display: flex; align-items: center; cursor: pointer;
+    border-bottom: 1.5px solid transparent; transition: all 0.15s ease;
+  }
+  .menu-item:hover { color: rgba(200,196,240,0.7); border-bottom-color: rgba(200,196,240,0.3); }
+  .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+  .doc-title-bar { font-size: 10px; color: rgba(200,196,240,0.35); }
+
+  /* ── Body layout ── */
+  .body-layout {
+    display: grid;
+    grid-template-columns: 196px 1fr 272px;
+    height: calc(100vh - 38px - 22px);
+  }
+
+  /* ── Navigator ── */
+  .nav-panel { background: #080705; border-right: 0.5px solid rgba(200,196,240,0.08); overflow-y: auto; padding-bottom: 20px; }
+  .nav-section { padding: 10px 12px 6px; font-size: 7px; letter-spacing: 0.32em; color: rgba(200,196,240,0.22); text-transform: uppercase; border-bottom: 0.5px solid rgba(200,196,240,0.05); }
+  .nav-item { display: flex; align-items: center; gap: 7px; padding: 7px 12px; font-size: 9px; color: rgba(200,196,240,0.32); cursor: pointer; border-left: 1.5px solid transparent; transition: all 0.12s; }
+  .nav-item:hover { color: rgba(200,196,240,0.6); background: rgba(200,196,240,0.03); }
+  .nav-item.active { color: rgba(200,196,240,0.85); border-left-color: rgba(200,196,240,0.8); background: rgba(200,196,240,0.05); }
+  .nav-empty { padding: 20px 14px; font-size: 9px; color: rgba(200,196,240,0.2); line-height: 1.6; text-align: center; }
+
+  /* ── Editor ── */
+  .editor-wrap { background: #0a0908; display: flex; flex-direction: column; overflow: hidden; }
+  .paper-scroll { flex: 1; overflow-y: auto; padding: 48px 24px; display: flex; justify-content: center; }
+  .doc-page {
+    width: 100%; max-width: 680px; min-height: 600px;
+    background: #f4f1eb; color: #1a1714;
+    padding: 56px 64px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.5), 0 1px 4px rgba(0,0,0,0.3);
+  }
+  .doc-empty-state { text-align: center; padding-top: 120px; }
+  .doc-empty-title { font-size: 22px; font-family: Georgia, serif; color: #1a1714; margin-bottom: 10px; }
+  .doc-empty-sub { font-size: 13px; color: #6b655c; font-family: Georgia, serif; font-style: italic; margin-bottom: 24px; }
+  .doc-empty-hint { font-size: 10px; letter-spacing: 0.1em; color: #8a857c; text-transform: uppercase; }
+
+  /* ── Status bar ── */
+  .status-bar {
+    height: 22px; background: #080705; border-top: 0.5px solid rgba(200,196,240,0.05);
+    display: flex; align-items: center; padding: 0 14px; gap: 16px;
+    font-size: 7px; letter-spacing: 0.18em; color: rgba(200,196,240,0.22);
+  }
+  .status-right { margin-left: auto; }
+
+  /* ── Keo panel ── */
+  .keo-panel { background: #080705; border-left: 0.5px solid rgba(200,196,240,0.08); display: flex; flex-direction: column; overflow: hidden; }
+  .keo-header { padding: 12px 14px 10px; border-bottom: 0.5px solid rgba(200,196,240,0.05); flex-shrink: 0; }
+  .keo-name { font-size: 9px; letter-spacing: 0.28em; color: rgba(200,196,240,0.85); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+  .keo-state-dot { width: 5px; height: 5px; border-radius: 50%; background: rgba(200,196,240,0.85); box-shadow: 0 0 6px rgba(200,196,240,0.5); animation: pulse 2.5s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { opacity: 0.5; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1); } }
+
+  .keo-viz { width: 100%; height: 80px; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
+  .viz-letter {
+    font-size: 38px; font-family: Georgia, serif; font-style: italic; font-weight: 300;
+    color: rgba(200,196,240,0.75); filter: drop-shadow(0 0 8px rgba(200,196,240,0.45)) drop-shadow(0 0 24px rgba(200,196,240,0.15));
+    animation: vizBreath 4s ease-in-out infinite; position: relative; z-index: 2;
+  }
+  @keyframes vizBreath { 0%,100% { opacity: 0.7; transform: scale(0.97); } 50% { opacity: 0.95; transform: scale(1.03); } }
+  .viz-glow { position: absolute; inset: 0; background: radial-gradient(ellipse at center, rgba(200,196,240,0.07) 0%, transparent 65%); }
+
+  .keo-dialogue { flex: 1; overflow-y: auto; padding: 10px 14px; display: flex; flex-direction: column; gap: 10px; }
+  .keo-msg { font-size: 10px; line-height: 1.7; color: rgba(200,196,240,0.62); border-left: 1.5px solid rgba(200,196,240,0.12); padding-left: 9px; }
+  .ron-msg { font-size: 10px; line-height: 1.7; color: rgba(255,255,255,0.3); padding-left: 9px; border-left: 1.5px solid rgba(255,255,255,0.06); }
+  .msg-who { font-size: 7px; letter-spacing: 0.22em; margin-bottom: 3px; }
+  .keo-msg .msg-who { color: rgba(200,196,240,0.4); }
+  .ron-msg .msg-who { color: rgba(255,255,255,0.2); }
+  .keo-empty { padding: 20px 14px; font-size: 9px; color: rgba(200,196,240,0.25); line-height: 1.7; text-align: center; }
+
+  .keo-input-wrap { padding: 8px 10px 10px; border-top: 0.5px solid rgba(200,196,240,0.05); flex-shrink: 0; display: flex; gap: 5px; align-items: flex-end; }
+  .keo-input {
+    flex: 1; background: rgba(200,196,240,0.04); border: 0.5px solid rgba(200,196,240,0.12); border-radius: 2px;
+    padding: 7px 9px; font-size: 10px; color: rgba(200,196,240,0.7); font-family: ui-sans-serif, sans-serif;
+    resize: none; min-height: 34px; outline: none; line-height: 1.5;
+  }
+  .keo-input::placeholder { color: rgba(200,196,240,0.2); }
+  .keo-send {
+    padding: 7px 10px; font-size: 8px; letter-spacing: 0.15em; color: rgba(200,196,240,0.5);
+    border: 0.5px solid rgba(200,196,240,0.2); border-radius: 2px; background: rgba(200,196,240,0.04);
+    cursor: pointer; transition: all 0.15s;
+  }
+  .keo-send:hover { color: rgba(200,196,240,0.9); border-color: rgba(200,196,240,0.4); }
+  .keo-send:disabled { opacity: 0.4; cursor: not-allowed; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="wordmark">KEO &middot; WRITE</div>
+  <div class="menu-items">
+    <div class="menu-item">File</div>
+    <div class="menu-item">Edit</div>
+    <div class="menu-item">View</div>
+  </div>
+  <div class="topbar-right">
+    <div class="doc-title-bar" id="docTitleBar">No document open</div>
+  </div>
+</div>
+
+<div class="body-layout">
+
+  <!-- Navigator -->
+  <div class="nav-panel">
+    <div class="nav-section">Documents</div>
+    <div class="nav-empty" id="navList">No documents yet.<br/>Start a conversation with Keo to create one.</div>
+  </div>
+
+  <!-- Editor -->
+  <div class="editor-wrap">
+    <div class="paper-scroll">
+      <div class="doc-page" id="docPage">
+        <div class="doc-empty-state">
+          <div class="doc-empty-title">Nothing open yet</div>
+          <div class="doc-empty-sub">Tell Keo what you're working on.</div>
+          <div class="doc-empty-hint">Resume &middot; Email &middot; Proposal &middot; Review Response</div>
+        </div>
+      </div>
+    </div>
+    <div class="status-bar">
+      <span id="wordCount">0 words</span>
+      <div class="status-right">Connected to /api/keo</div>
+    </div>
+  </div>
+
+  <!-- Keo panel -->
+  <div class="keo-panel">
+    <div class="keo-header">
+      <div class="keo-name">
+        <div class="keo-state-dot"></div>
+        KEO &middot; PRESENT
+      </div>
+      <div class="keo-viz">
+        <div class="viz-glow"></div>
+        <div class="viz-letter" id="vizLetter">A</div>
+      </div>
+    </div>
+
+    <div class="keo-dialogue" id="dialogue">
+      <div class="keo-empty">Tell me what you're working on — a resume, an email, a response to a review. I'll take it from there.</div>
+    </div>
+
+    <div class="keo-input-wrap">
+      <textarea class="keo-input" id="keoInput" placeholder="Ask Keo anything…" rows="1"></textarea>
+      <button class="keo-send" id="keoSend">SEND</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // ── Mini visualizer cycling ──────────────────────────────────────────────
+  const scripts = [
+    { ch: 'A',      label: 'Latin'      },
+    { ch: '\u03B1', label: 'Greek'      },
+    { ch: '\u0623', label: 'Arabic'     },
+    { ch: '\u3042', label: 'Hiragana'   },
+    { ch: '\uAC00', label: 'Hangul'     },
+    { ch: '\u0410', label: 'Cyrillic'   },
+    { ch: '\u05D0', label: 'Hebrew'     },
+    { ch: '\u0905', label: 'Devanagari' },
+    { ch: '\u1780', label: 'Khmer'      },
+    { ch: '\u6587', label: 'Chinese'    },
+    { ch: '\u0627', label: 'Persian'    },
+  ];
+  let scriptIdx = 0;
+  const vizEl = document.getElementById('vizLetter');
+
+  function cycleViz() {
+    vizEl.style.transition = 'opacity 0.5s ease';
+    vizEl.style.opacity = '0';
+    setTimeout(() => {
+      scriptIdx = (scriptIdx + 1) % scripts.length;
+      vizEl.textContent = scripts[scriptIdx].ch;
+      vizEl.style.opacity = '1';
+    }, 500);
+  }
+  setInterval(cycleViz, 3200);
+
+  // ── Conversation state ───────────────────────────────────────────────────
+  let messages = [];
+  const dialogueEl = document.getElementById('dialogue');
+  const inputEl = document.getElementById('keoInput');
+  const sendBtn = document.getElementById('keoSend');
+
+  function renderDialogue() {
+    if (!messages.length) {
+      dialogueEl.innerHTML = "<div class=\"keo-empty\">Tell me what you're working on &mdash; a resume, an email, a response to a review. I'll take it from there.</div>";
+      return;
+    }
+    dialogueEl.innerHTML = messages.map(m => {
+      const cls = m.role === 'user' ? 'ron-msg' : 'keo-msg';
+      const who = m.role === 'user' ? 'RON' : 'KEO';
+      const text = (m.text || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      return '<div class="' + cls + '"><div class="msg-who">' + who + '</div>' + text + '</div>';
+    }).join('');
+    dialogueEl.scrollTop = dialogueEl.scrollHeight;
+  }
+
+  async function sendMessage() {
+    const text = inputEl.value.trim();
+    if (!text) return;
+    inputEl.value = '';
+    sendBtn.disabled = true;
+
+    messages.push({ role: 'user', text });
+    renderDialogue();
+
+    try {
+      const res = await fetch('/api/keo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: messages.map(m => ({ role: m.role, content: m.text })) }),
+      });
+      const data = await res.json();
+
+      let replyText = '';
+      if (data.content) {
+        replyText = data.content.filter(b => b.type === 'text').map(b => b.text).join(' ');
+      } else if (data.error) {
+        replyText = 'Something went wrong: ' + data.error;
+      }
+
+      messages.push({ role: 'assistant', text: replyText || '…' });
+      renderDialogue();
+    } catch (err) {
+      messages.push({ role: 'assistant', text: 'Connection error: ' + String(err) });
+      renderDialogue();
+    } finally {
+      sendBtn.disabled = false;
+    }
+  }
+
+  sendBtn.addEventListener('click', sendMessage);
+  inputEl.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  });
+
+  console.log('Keo workspace loaded.');
+</script>
+
+</body>
+</html>
