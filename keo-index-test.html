@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Keo — Write</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #050403;
+    color: rgba(200,196,240,0.7);
+    font-family: ui-monospace, monospace;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    gap: 14px;
+  }
+  .wordmark {
+    font-size: 11px;
+    letter-spacing: 0.4em;
+    color: rgba(200,196,240,0.6);
+  }
+  .stage {
+    position: relative;
+    width: 220px;
+    height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .viz {
+    font-size: 48px;
+    font-family: Georgia, serif;
+    font-style: italic;
+    color: rgba(200,196,240,0.85);
+    filter: drop-shadow(0 0 12px rgba(200,196,240,0.45));
+    animation: breathe 4s ease-in-out infinite;
+  }
+  @keyframes breathe {
+    0%, 100% { opacity: 0.7; transform: scale(0.97); }
+    50% { opacity: 1; transform: scale(1.03); }
+  }
+  .status {
+    font-size: 8px;
+    letter-spacing: 0.3em;
+    color: rgba(200,196,240,0.25);
+    margin-top: 6px;
+  }
+  .meta {
+    font-size: 7px;
+    letter-spacing: 0.2em;
+    color: rgba(200,196,240,0.18);
+    margin-top: 20px;
+  }
+</style>
+</head>
+<body>
+
+<div class="wordmark">KEO &middot; WRITE</div>
+
+<div class="stage">
+  <div class="viz" id="viz">A</div>
+</div>
+
+<div class="status" id="status">INITIALIZING</div>
+<div class="meta">DEPLOYED VIA JARVIS FILE INGESTION TEST</div>
+
+<script>
+  const scripts = [
+    { ch: 'A', label: 'Latin' },
+    { ch: '\u03B1', label: 'Greek' },
+    { ch: '\u0623', label: 'Arabic' },
+    { ch: '\u3042', label: 'Hiragana' },
+    { ch: '\uAC00', label: 'Hangul' },
+    { ch: '\u0410', label: 'Cyrillic' },
+    { ch: '\u05D0', label: 'Hebrew' },
+    { ch: '\u0905', label: 'Devanagari' },
+    { ch: '\u1780', label: 'Khmer' },
+    { ch: '\u6587', label: 'Chinese' },
+    { ch: '\u0627', label: 'Persian' },
+  ];
+
+  let idx = 0;
+  const vizEl = document.getElementById('viz');
+  const statusEl = document.getElementById('status');
+
+  function cycle() {
+    vizEl.style.transition = 'opacity 0.5s ease';
+    vizEl.style.opacity = '0';
+    setTimeout(() => {
+      idx = (idx + 1) % scripts.length;
+      const current = scripts[idx];
+      vizEl.textContent = current.ch;
+      statusEl.textContent = `SCRIPT: ${current.label.toUpperCase()}`;
+      vizEl.style.opacity = '1';
+    }, 500);
+  }
+
+  setInterval(cycle, 3000);
+
+  console.log(`Keo test page loaded. Cycling through ${scripts.length} scripts.`);
+</script>
+
+</body>
+</html>
