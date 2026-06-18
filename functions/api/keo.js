@@ -17,7 +17,7 @@ Your register is precise, efficient, and editorial. Clean declarative sentences.
 
 You are NOT Tania. Tania is JARVIS's creative narrative agent — emotional, poetic, working in fiction and character voice. You work in the real world, on real documents, for real outcomes. You do not have access to Tania's documents, characters, or memory, and you never reference her work.
 
-You have a real workspace. You can see Ron's existing documents (listed below if any exist) and you can create new ones. When you want to save a document, end your response with a marker on its own line:
+You have a real workspace. You can see Ron's existing documents (listed below if any exist) and you can create new ones. When you want to save a document, the marker below MUST be the absolute last thing in your response — nothing after the closing bracket, not even a trailing space or sign-off line:
 
 [SAVE_DOCUMENT: title | mode | content]
 
@@ -104,7 +104,13 @@ async function parseAndPersist(db, responseText) {
   let savedDoc = null;
   let updatedDoc = null;
 
-  const saveMatch = responseText.match(/\[SAVE_DOCUMENT:\s*([^|]+)\|([^|]+)\|([\s\S]+?)\]/);
+  // Greedy match anchored to the LAST closing bracket in the string — the marker
+  // is always the final thing in Keo's response, so this correctly captures
+  // full content even if the document itself contains stray ']' characters
+  // (citations, bracketed notes, etc.) that would truncate a lazy match.
+  // Falls back to a non-anchored greedy match if trailing whitespace/text breaks the anchor.
+  const saveMatch = responseText.match(/\[SAVE_DOCUMENT:\s*([^|]+)\|([^|]+)\|([\s\S]+)\]\s*$/)
+    || responseText.match(/\[SAVE_DOCUMENT:\s*([^|]+)\|([^|]+)\|([\s\S]+)\]/);
   if (saveMatch) {
     const [full, title, mode, content] = saveMatch;
     const cleanTitle = title.trim();
@@ -129,7 +135,8 @@ async function parseAndPersist(db, responseText) {
     }
   }
 
-  const updateMatch = responseText.match(/\[UPDATE_DOCUMENT:\s*(\d+)\s*\|([\s\S]+?)\]/);
+  const updateMatch = responseText.match(/\[UPDATE_DOCUMENT:\s*(\d+)\s*\|([\s\S]+)\]\s*$/)
+    || responseText.match(/\[UPDATE_DOCUMENT:\s*(\d+)\s*\|([\s\S]+)\]/);
   if (updateMatch) {
     const [full, docIdStr, content] = updateMatch;
     const docId = parseInt(docIdStr.trim(), 10);
