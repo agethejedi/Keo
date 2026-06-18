@@ -58,6 +58,62 @@
   .ribbon-action.danger { color: rgba(251,113,133,0.5); border-color: rgba(251,113,133,0.2); }
   .ribbon-action.danger:hover { color: rgba(251,113,133,0.85); border-color: rgba(251,113,133,0.4); }
 
+  /* ── Format toolbar ── */
+  .format-bar {
+    height: 30px; background: #0a0908; border-bottom: 0.5px solid rgba(200,196,240,0.05);
+    display: none; align-items: center; gap: 4px; padding: 0 14px; flex-shrink: 0;
+  }
+  .format-bar.visible { display: flex; }
+  .fmt-btn {
+    width: 24px; height: 22px; display: flex; align-items: center; justify-content: center;
+    font-size: 11px; color: rgba(200,196,240,0.5); background: transparent;
+    border: 0.5px solid rgba(200,196,240,0.12); border-radius: 2px; cursor: pointer; transition: all 0.15s;
+  }
+  .fmt-btn:hover { color: rgba(200,196,240,0.9); border-color: rgba(200,196,240,0.35); background: rgba(200,196,240,0.05); }
+  .fmt-btn.bold { font-weight: 700; }
+  .fmt-btn.italic { font-style: italic; }
+  .fmt-btn.underline { text-decoration: underline; }
+  .fmt-btn.highlight { background: rgba(240,200,80,0.18); border-color: rgba(240,200,80,0.3); color: rgba(240,200,80,0.9); }
+  .fmt-btn.highlight:hover { background: rgba(240,200,80,0.3); }
+  .fmt-btn.quote-save { color: rgba(139,111,71,0.7); border-color: rgba(139,111,71,0.3); font-size: 9px; width: auto; padding: 0 8px; letter-spacing: 0.1em; }
+  .fmt-btn.quote-save:hover { color: rgba(139,111,71,1); background: rgba(139,111,71,0.1); }
+  .fmt-divider { width: 0.5px; height: 16px; background: rgba(200,196,240,0.1); margin: 0 4px; }
+  mark.keo-hl { background: rgba(240,200,80,0.32); color: inherit; border-radius: 1px; }
+
+  /* ── Pagination ── */
+  .page-indicator { font-size: 8px; letter-spacing: 0.15em; color: rgba(200,196,240,0.3); }
+  .page-nav-btn {
+    width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center;
+    font-size: 9px; color: rgba(200,196,240,0.35); background: transparent; border: 0.5px solid rgba(200,196,240,0.15);
+    border-radius: 2px; cursor: pointer; margin: 0 3px; transition: all 0.15s;
+  }
+  .page-nav-btn:hover { color: rgba(200,196,240,0.8); border-color: rgba(200,196,240,0.35); }
+  .page-nav-btn:disabled { opacity: 0.25; cursor: not-allowed; }
+
+  /* ── Quotes menu (ribbon dropdown) ── */
+  .quotes-menu-wrap { position: relative; }
+  .quotes-panel {
+    position: absolute; top: 32px; right: 0; width: 340px; max-height: 420px;
+    background: #0a0908; border: 0.5px solid rgba(139,111,71,0.3); border-radius: 3px;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.6); z-index: 50; display: none; flex-direction: column;
+  }
+  .quotes-panel.open { display: flex; }
+  .quotes-search-row { padding: 10px 12px; border-bottom: 0.5px solid rgba(200,196,240,0.06); }
+  .quotes-search-input {
+    width: 100%; background: rgba(200,196,240,0.04); border: 0.5px solid rgba(200,196,240,0.15);
+    border-radius: 2px; padding: 6px 9px; font-size: 10px; color: rgba(200,196,240,0.75);
+    font-family: ui-sans-serif, sans-serif; outline: none;
+  }
+  .quotes-search-input::placeholder { color: rgba(200,196,240,0.22); }
+  .quotes-list { overflow-y: auto; max-height: 340px; padding: 6px 0; }
+  .quote-item { padding: 9px 12px; border-bottom: 0.5px solid rgba(200,196,240,0.04); cursor: pointer; transition: background 0.12s; }
+  .quote-item:hover { background: rgba(200,196,240,0.04); }
+  .quote-item-text { font-size: 10.5px; line-height: 1.6; color: rgba(200,196,240,0.7); font-family: Georgia, serif; font-style: italic; margin-bottom: 5px; }
+  .quote-item-meta { font-size: 7px; letter-spacing: 0.12em; color: rgba(200,196,240,0.28); display: flex; justify-content: space-between; align-items: center; }
+  .quote-item-del { color: rgba(251,113,133,0.4); cursor: pointer; }
+  .quote-item-del:hover { color: rgba(251,113,133,0.8); }
+  .quotes-empty { padding: 24px 14px; font-size: 9px; color: rgba(200,196,240,0.22); text-align: center; line-height: 1.6; }
+
   /* ── Body layout ── */
   .body-layout {
     display: grid;
@@ -75,12 +131,13 @@
 
   /* ── Editor ── */
   .editor-wrap { background: #0a0908; display: flex; flex-direction: column; overflow: hidden; }
-  .paper-scroll { flex: 1; overflow-y: auto; padding: 48px 24px; display: flex; justify-content: center; }
+  .paper-scroll { flex: 1; overflow-y: auto; padding: 24px 24px; display: flex; flex-direction: column; align-items: center; gap: 18px; }
   .doc-page {
-    width: 100%; max-width: 680px; min-height: 600px;
+    width: 100%; max-width: 680px; min-height: 760px;
     background: #f4f1eb; color: #1a1714;
     padding: 56px 64px;
     box-shadow: 0 4px 24px rgba(0,0,0,0.5), 0 1px 4px rgba(0,0,0,0.3);
+    flex-shrink: 0;
   }
   .doc-empty-state { text-align: center; padding-top: 120px; }
   .doc-empty-title { font-size: 22px; font-family: Georgia, serif; color: #1a1714; margin-bottom: 10px; }
@@ -168,8 +225,26 @@
   <button class="mode-chip" data-mode="review">Review</button>
   <button class="mode-chip" data-mode="brief">Brief</button>
   <div class="ribbon-spacer"></div>
+  <div class="quotes-menu-wrap">
+    <button class="ribbon-action" id="quotesMenuBtn">&#10077; QUOTES</button>
+    <div class="quotes-panel" id="quotesPanel">
+      <div class="quotes-search-row">
+        <input class="quotes-search-input" id="quotesSearchInput" type="text" placeholder="Search quotes or source document…" />
+      </div>
+      <div class="quotes-list" id="quotesList"></div>
+    </div>
+  </div>
   <button class="ribbon-action" id="ribbonNew">+ NEW DRAFT</button>
   <button class="ribbon-action danger" id="ribbonDelete" style="display:none;">DELETE</button>
+</div>
+
+<div class="format-bar" id="formatBar">
+  <button class="fmt-btn bold" id="fmtBold" title="Bold">B</button>
+  <button class="fmt-btn italic" id="fmtItalic" title="Italic">I</button>
+  <button class="fmt-btn underline" id="fmtUnderline" title="Underline">U</button>
+  <button class="fmt-btn highlight" id="fmtHighlight" title="Highlight">&#9608;</button>
+  <div class="fmt-divider"></div>
+  <button class="fmt-btn quote-save" id="fmtSaveQuote" title="Save selected text as a quote">&#10077; SAVE QUOTE</button>
 </div>
 
 <div class="body-layout">
@@ -194,7 +269,11 @@
     <div class="status-bar">
       <span id="wordCount">0 words</span>
       <span id="saveStatus" style="opacity:0;transition:opacity 0.3s;"></span>
-      <div class="status-right">Connected to /api/keo</div>
+      <div class="status-right" style="display:flex;align-items:center;gap:2px;">
+        <button class="page-nav-btn" id="pagePrev" disabled>&#9664;</button>
+        <span class="page-indicator" id="pageIndicator">1 / 1</span>
+        <button class="page-nav-btn" id="pageNext" disabled>&#9654;</button>
+      </div>
     </div>
   </div>
 
@@ -241,6 +320,7 @@
   const sendBtn       = document.getElementById('keoSend');
   const navListEl     = document.getElementById('navList');
   const docPageEl     = document.getElementById('docPage');
+  const paperScrollEl = docPageEl.parentElement; // stable container, never replaced
   const docTitleBar   = document.getElementById('docTitleBar');
   const wordCountEl   = document.getElementById('wordCount');
   const ribbonNewBtn  = document.getElementById('ribbonNew');
@@ -282,24 +362,110 @@
     });
   }
 
+  const WORDS_PER_PAGE = 600;
+  let currentPages = []; // array of plain-text chunks, one per page
+  let activeDocTitle = '';
+  let activeDocMode = '';
+
+  function chunkIntoPages(content) {
+    const words = (content || '').split(/(\s+)/); // keep whitespace tokens so rejoining preserves spacing
+    const pages = [];
+    let current = [];
+    let wordCount = 0;
+    for (const token of words) {
+      current.push(token);
+      if (token.trim().length) wordCount++;
+      if (wordCount >= WORDS_PER_PAGE && /\s/.test(token)) {
+        pages.push(current.join(''));
+        current = [];
+        wordCount = 0;
+      }
+    }
+    if (current.length) pages.push(current.join(''));
+    return pages.length ? pages : [''];
+  }
+
   function renderDocPage(title, content, version) {
-    docPageEl.innerHTML =
-      '<div class="doc-header-row"><span>' + escapeHtml(title) + ' &middot; v' + (version || 1) + '</span><span id="saveIndicator" style="opacity:0;transition:opacity 0.3s;font-size:8px;letter-spacing:0.15em;color:rgba(139,111,71,0.6);">SAVING&hellip;</span></div>' +
-      '<div class="doc-body" id="docBody" contenteditable="true" spellcheck="true"></div>';
-    document.getElementById('docBody').textContent = content || '';
-    wireEditableBody();
+    activeDocTitle = title;
+    currentPages = chunkIntoPages(content);
+    paperScrollEl.innerHTML = currentPages.map((pageContent, i) =>
+      '<div class="doc-page" data-page="' + (i + 1) + '">' +
+      (i === 0
+        ? '<div class="doc-header-row"><span>' + escapeHtml(title) + ' &middot; v' + (version || 1) + '</span><span id="saveIndicator" style="opacity:0;transition:opacity 0.3s;font-size:8px;letter-spacing:0.15em;color:rgba(139,111,71,0.6);">SAVING&hellip;</span></div>'
+        : '') +
+      '<div class="doc-body" data-page-body="' + (i + 1) + '" contenteditable="true" spellcheck="true"></div>' +
+      '</div>'
+    ).join('');
+
+    document.querySelectorAll('[data-page-body]').forEach((el, i) => {
+      el.textContent = currentPages[i];
+      wireEditableBody(el);
+    });
+
+    updatePageIndicator(1, currentPages.length);
+    wirePaperScroll();
+  }
+
+  function getFullContentFromPages() {
+    return Array.from(document.querySelectorAll('[data-page-body]')).map(el => el.textContent).join('');
+  }
+
+  function updatePageIndicator(current, total) {
+    document.getElementById('pageIndicator').textContent = current + ' / ' + total;
+    document.getElementById('pagePrev').disabled = current <= 1;
+    document.getElementById('pageNext').disabled = current >= total;
+  }
+
+  function getCurrentPageNum() {
+    const scrollEl = paperScrollEl;
+    const pages = scrollEl.querySelectorAll('.doc-page');
+    let closest = 1;
+    let minDist = Infinity;
+    pages.forEach((p, i) => {
+      const dist = Math.abs(p.getBoundingClientRect().top - scrollEl.getBoundingClientRect().top);
+      if (dist < minDist) { minDist = dist; closest = i + 1; }
+    });
+    return closest;
+  }
+
+  function wirePaperScroll() {
+    const scrollEl = paperScrollEl;
+    scrollEl.onscroll = () => {
+      const current = getCurrentPageNum();
+      updatePageIndicator(current, currentPages.length);
+    };
+  }
+
+  document.getElementById('pagePrev').addEventListener('click', () => jumpPage(-1));
+  document.getElementById('pageNext').addEventListener('click', () => jumpPage(1));
+  function jumpPage(delta) {
+    const current = getCurrentPageNum();
+    const target = Math.max(1, Math.min(currentPages.length, current + delta));
+    const targetEl = document.querySelector('.doc-page[data-page="' + target + '"]');
+    if (targetEl) targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   let saveDebounceTimer = null;
-  function wireEditableBody() {
-    const bodyEl = document.getElementById('docBody');
+  function wireEditableBody(bodyEl) {
     if (!bodyEl) return;
     bodyEl.addEventListener('input', () => {
-      const words = bodyEl.textContent.trim().split(/\s+/).filter(Boolean).length;
-      wordCountEl.textContent = words + ' words';
+      const allWords = getFullContentFromPages().trim().split(/\s+/).filter(Boolean).length;
+      wordCountEl.textContent = allWords + ' words';
       clearTimeout(saveDebounceTimer);
-      saveDebounceTimer = setTimeout(() => saveEditedContent(bodyEl.textContent), 900);
+      saveDebounceTimer = setTimeout(() => saveEditedContent(getFullContentFromPages()), 900);
     });
+    bodyEl.addEventListener('mouseup', updateFormatBarVisibility);
+    bodyEl.addEventListener('keyup', updateFormatBarVisibility);
+  }
+
+  function updateFormatBarVisibility() {
+    const sel = window.getSelection();
+    const formatBar = document.getElementById('formatBar');
+    if (sel && sel.toString().trim().length > 0) {
+      formatBar.classList.add('visible');
+    } else {
+      formatBar.classList.remove('visible');
+    }
   }
 
   async function saveEditedContent(newContent) {
@@ -330,6 +496,7 @@
       const data = await res.json();
       if (!data.document) return;
       activeDocId = data.document.id;
+      activeDocMode = data.document.mode;
       docTitleBar.textContent = data.document.title + ' \u00B7 ' + data.document.mode;
       renderDocPage(data.document.title, data.document.content, data.document.version);
       wordCountEl.textContent = (data.document.word_count || 0) + ' words';
@@ -343,10 +510,13 @@
 
   function closeDocument() {
     activeDocId = null;
+    activeDocTitle = '';
     docTitleBar.textContent = 'No document open';
-    docPageEl.innerHTML = EMPTY_STATE_HTML;
+    paperScrollEl.innerHTML = '<div class="doc-page" id="docPage">' + EMPTY_STATE_HTML + '</div>';
     wordCountEl.textContent = '0 words';
     ribbonDelBtn.style.display = 'none';
+    updatePageIndicator(1, 1);
+    document.getElementById('formatBar').classList.remove('visible');
     renderNav();
   }
 
@@ -360,6 +530,131 @@
     } catch (err) {
       console.error('Failed to delete document:', err);
     }
+  }
+
+  // ── Text formatting (bold / italic / underline / highlight) ────────────────
+  function applyFormat(command) {
+    document.execCommand(command, false, null);
+    triggerSaveFromActivePage();
+  }
+
+  function applyHighlight() {
+    const sel = window.getSelection();
+    if (!sel || sel.isCollapsed || !sel.toString().trim()) return;
+    const range = sel.getRangeAt(0);
+    const mark = document.createElement('mark');
+    mark.className = 'keo-hl';
+    range.surroundContents(mark);
+    sel.removeAllRanges();
+    triggerSaveFromActivePage();
+  }
+
+  function triggerSaveFromActivePage() {
+    clearTimeout(saveDebounceTimer);
+    saveDebounceTimer = setTimeout(() => saveEditedContent(getFullContentFromPages()), 500);
+    const allWords = getFullContentFromPages().trim().split(/\s+/).filter(Boolean).length;
+    wordCountEl.textContent = allWords + ' words';
+  }
+
+  document.getElementById('fmtBold').addEventListener('click', () => applyFormat('bold'));
+  document.getElementById('fmtItalic').addEventListener('click', () => applyFormat('italic'));
+  document.getElementById('fmtUnderline').addEventListener('click', () => applyFormat('underline'));
+  document.getElementById('fmtHighlight').addEventListener('click', applyHighlight);
+
+  // ── Quotes ───────────────────────────────────────────────────────────────
+  document.getElementById('fmtSaveQuote').addEventListener('click', async () => {
+    const sel = window.getSelection();
+    const text = sel ? sel.toString().trim() : '';
+    if (!text) return;
+    try {
+      await fetch('/api/keo?resource=quote', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ document_id: activeDocId, document_title: activeDocTitle, quote_text: text }),
+      });
+      const btn = document.getElementById('fmtSaveQuote');
+      const original = btn.textContent;
+      btn.textContent = '\u2713 SAVED';
+      setTimeout(() => { btn.textContent = original; }, 1200);
+    } catch (err) {
+      console.error('Failed to save quote:', err);
+    }
+  });
+
+  const quotesMenuBtn   = document.getElementById('quotesMenuBtn');
+  const quotesPanel      = document.getElementById('quotesPanel');
+  const quotesListEl     = document.getElementById('quotesList');
+  const quotesSearchEl   = document.getElementById('quotesSearchInput');
+
+  quotesMenuBtn.addEventListener('click', () => {
+    const willOpen = !quotesPanel.classList.contains('open');
+    quotesPanel.classList.toggle('open');
+    if (willOpen) loadQuotes('');
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!quotesPanel.contains(e.target) && e.target !== quotesMenuBtn) {
+      quotesPanel.classList.remove('open');
+    }
+  });
+
+  let quotesSearchDebounce = null;
+  quotesSearchEl.addEventListener('input', () => {
+    clearTimeout(quotesSearchDebounce);
+    quotesSearchDebounce = setTimeout(() => loadQuotes(quotesSearchEl.value.trim()), 300);
+  });
+
+  async function loadQuotes(search) {
+    try {
+      const url = '/api/keo?resource=quotes' + (search ? '&search=' + encodeURIComponent(search) : '');
+      const res = await fetch(url);
+      const data = await res.json();
+      renderQuotesList(data.quotes || []);
+    } catch (err) {
+      console.error('Failed to load quotes:', err);
+    }
+  }
+
+  function renderQuotesList(quotes) {
+    if (!quotes.length) {
+      quotesListEl.innerHTML = '<div class="quotes-empty">No saved quotes yet.<br/>Select text in a document and click SAVE QUOTE.</div>';
+      return;
+    }
+    // Group by source document
+    const byDoc = {};
+    quotes.forEach(q => {
+      const key = q.document_title || 'Untitled';
+      if (!byDoc[key]) byDoc[key] = [];
+      byDoc[key].push(q);
+    });
+    quotesListEl.innerHTML = Object.entries(byDoc).map(([docTitle, qs]) =>
+      '<div style="padding:8px 12px 2px;font-size:7px;letter-spacing:0.2em;color:rgba(139,111,71,0.5);text-transform:uppercase;">' + escapeHtml(docTitle) + '</div>' +
+      qs.map(q =>
+        '<div class="quote-item" data-doc-id="' + (q.document_id || '') + '">' +
+        '<div class="quote-item-text">&ldquo;' + escapeHtml(q.quote_text) + '&rdquo;</div>' +
+        '<div class="quote-item-meta"><span>' + (q.created_at || '').slice(0, 10) + '</span><span class="quote-item-del" data-quote-id="' + q.id + '">DELETE</span></div>' +
+        '</div>'
+      ).join('')
+    ).join('');
+
+    quotesListEl.querySelectorAll('.quote-item').forEach(el => {
+      el.addEventListener('click', (e) => {
+        if (e.target.classList.contains('quote-item-del')) return;
+        const docId = el.dataset.docId;
+        if (docId) {
+          openDocument(docId);
+          quotesPanel.classList.remove('open');
+        }
+      });
+    });
+    quotesListEl.querySelectorAll('.quote-item-del').forEach(el => {
+      el.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const quoteId = el.dataset.quoteId;
+        await fetch('/api/keo?resource=quote&id=' + quoteId, { method: 'DELETE' });
+        loadQuotes(quotesSearchEl.value.trim());
+      });
+    });
   }
 
   // ── Mode chips ───────────────────────────────────────────────────────────
