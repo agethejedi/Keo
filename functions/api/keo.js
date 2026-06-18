@@ -192,21 +192,47 @@ export async function onRequestGet(context) {
     return json({ modes: Object.keys(MODE_GUIDANCE) });
   }
 
+  if (resource === "quotes") {
+    const search = url.searchParams.get("search");
+    let query = "SELECT * FROM keo_quotes";
+    const params = [];
+    if (search) {
+      query += " WHERE quote_text LIKE ? OR document_title LIKE ? OR note LIKE ?";
+      const pattern = `%${search}%`;
+      params.push(pattern, pattern, pattern);
+    }
+    query += " ORDER BY created_at DESC";
+    const stmt = params.length ? db.prepare(query).bind(...params) : db.prepare(query);
+    const result = await stmt.all();
+    return json({ quotes: result.results || [] });
+  }
+
   return json({ error: "Unknown resource" }, 404);
 }
 
-// ── DELETE — remove a document ───────────────────────────────────────────────
+// ── DELETE — remove a document or a quote ────────────────────────────────────
 export async function onRequestDelete(context) {
   const { request, env } = context;
   const url = new URL(request.url);
+  const resource = url.searchParams.get("resource");
   const id = url.searchParams.get("id");
   const db = env.DB;
 
   if (!db) return json({ error: "DB not configured" }, 503);
   if (!id) return json({ error: "id required" }, 400);
 
+  if (resource === "quote") {
+    try {
+      await db.prepare("DELETE FROM keo_quotes WHERE id = ?").bind(id).run();
+      return json({ ok: true, deleted: id });
+    } catch (err) {
+      return json({ error: String(err) }, 500);
+    }
+  }
+
   try {
     await db.prepare("DELETE FROM keo_versions WHERE document_id = ?").bind(id).run();
+    await db.prepare("DELETE FROM keo_quotes WHERE document_id = ?").bind(id).run();
     await db.prepare("DELETE FROM keo_documents WHERE id = ?").bind(id).run();
     return json({ ok: true, deleted: id });
   } catch (err) {
@@ -253,7 +279,29 @@ export async function onRequestPatch(context) {
 // ── POST — conversation with Keo ─────────────────────────────────────────────
 export async function onRequestPost(context) {
   const { request, env } = context;
+  const url = new URL(request.url);
+  const resource = url.searchParams.get("resource");
   const db = env.DB;
+
+  // ── Save a quote — separate from the Keo conversation flow ──────────────
+  if (resource === "quote") {
+    if (!db) return json({ error: "DB not configured" }, 503);
+    let qBody;
+    try { qBody = await request.json(); }
+    catch { return json({ error: "Invalid JSON" }, 400); }
+
+    const { document_id, document_title, quote_text, note } = qBody;
+    if (!quote_text) return json({ error: "quote_text required" }, 400);
+
+    try {
+      const result = await db.prepare(
+        "INSERT INTO keo_quotes (document_id, document_title, quote_text, note) VALUES (?, ?, ?, ?)"
+      ).bind(document_id || null, document_title || "Untitled", quote_text, note || null).run();
+      return json({ ok: true, id: result.meta.last_row_id });
+    } catch (err) {
+      return json({ error: String(err) }, 500);
+    }
+  }
 
   if (!env.ANTHROPIC_API_KEY) {
     return json({ error: "ANTHROPIC_API_KEY not configured." }, 500);
