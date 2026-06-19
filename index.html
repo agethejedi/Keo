@@ -200,6 +200,41 @@
   }
   .keo-send:hover { color: rgba(200,196,240,0.9); border-color: rgba(200,196,240,0.4); }
   .keo-send:disabled { opacity: 0.4; cursor: not-allowed; }
+  /* ── Paste modal ── */
+  .paste-modal-bg {
+    position: fixed; inset: 0; z-index: 80; background: rgba(5,4,3,0.85);
+    backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center;
+  }
+  .paste-modal-bg.open { display: flex; }
+  .paste-modal {
+    width: 580px; max-height: 70vh; background: #080705;
+    border: 0.5px solid rgba(200,196,240,0.2); border-radius: 3px;
+    display: flex; flex-direction: column; box-shadow: 0 24px 64px rgba(0,0,0,0.7);
+  }
+  .paste-modal-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 14px; border-bottom: 0.5px solid rgba(200,196,240,0.07);
+    font-size: 9px; letter-spacing: 0.28em; color: rgba(200,196,240,0.5);
+  }
+  .paste-modal-close { color: rgba(251,113,133,0.5); cursor: pointer; font-size: 11px; }
+  .paste-modal-close:hover { color: rgba(251,113,133,0.9); }
+  .paste-modal-body { padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; flex: 1; overflow: hidden; }
+  .paste-title-input {
+    background: rgba(200,196,240,0.04); border: 0.5px solid rgba(200,196,240,0.15);
+    border-radius: 2px; padding: 6px 9px; font-size: 10px; color: rgba(200,196,240,0.75);
+    font-family: ui-sans-serif, sans-serif; outline: none; width: 100%;
+  }
+  .paste-textarea {
+    flex: 1; min-height: 240px; background: rgba(200,196,240,0.03);
+    border: 0.5px solid rgba(200,196,240,0.12); border-radius: 2px;
+    padding: 10px 12px; font-size: 11px; color: rgba(200,196,240,0.65);
+    font-family: Georgia, serif; line-height: 1.7; resize: none; outline: none;
+  }
+  .paste-textarea::placeholder { color: rgba(200,196,240,0.18); }
+  .paste-modal-footer {
+    padding: 8px 14px 12px; display: flex; gap: 6px; justify-content: flex-end;
+    border-top: 0.5px solid rgba(200,196,240,0.05);
+  }
 </style>
 </head>
 <body>
@@ -224,6 +259,9 @@
   <button class="mode-chip" data-mode="social">Social</button>
   <button class="mode-chip" data-mode="review">Review</button>
   <button class="mode-chip" data-mode="brief">Brief</button>
+  <button class="mode-chip" data-mode="screenplay">Screenplay</button>
+  <div class="fmt-divider" style="margin:0 6px;"></div>
+  <button class="ribbon-action" id="ribbonPaste" title="Paste raw content into workspace">&#9618; PASTE CONTENT</button>
   <div class="ribbon-spacer"></div>
   <div class="quotes-menu-wrap">
     <button class="ribbon-action" id="quotesMenuBtn">&#10077; QUOTES</button>
@@ -281,8 +319,8 @@
   <div class="keo-panel">
     <div class="keo-header">
       <div class="keo-name">
-        <div class="keo-state-dot"></div>
-        KEO &middot; PRESENT
+        <div class="keo-state-dot" id="keoStateDot"></div>
+        KEO &middot; <span id="keoStateLabel">PRESENT</span>
       </div>
       <div class="keo-viz">
         <div class="viz-glow"></div>
@@ -363,25 +401,30 @@
   }
 
   const WORDS_PER_PAGE = 600;
-  let currentPages = []; // array of plain-text chunks, one per page
+  let currentPages = []; // array of HTML chunks, one per page
   let activeDocTitle = '';
   let activeDocMode = '';
 
   function chunkIntoPages(content) {
-    const words = (content || '').split(/(\s+)/); // keep whitespace tokens so rejoining preserves spacing
+    if (!content || !content.trim()) return [''];
+    // Split on paragraph/double-newline boundaries to avoid splitting mid-HTML-tag
+    const paragraphs = content.split(/\n\n+/);
     const pages = [];
-    let current = [];
+    let currentChunks = [];
     let wordCount = 0;
-    for (const token of words) {
-      current.push(token);
-      if (token.trim().length) wordCount++;
-      if (wordCount >= WORDS_PER_PAGE && /\s/.test(token)) {
-        pages.push(current.join(''));
-        current = [];
-        wordCount = 0;
+
+    for (const para of paragraphs) {
+      const paraWords = para.replace(/<[^>]+>/g, ' ').split(/\s+/).filter(Boolean).length;
+      if (wordCount + paraWords > WORDS_PER_PAGE && currentChunks.length) {
+        pages.push(currentChunks.join('\n\n'));
+        currentChunks = [para];
+        wordCount = paraWords;
+      } else {
+        currentChunks.push(para);
+        wordCount += paraWords;
       }
     }
-    if (current.length) pages.push(current.join(''));
+    if (currentChunks.length) pages.push(currentChunks.join('\n\n'));
     return pages.length ? pages : [''];
   }
 
@@ -398,7 +441,8 @@
     ).join('');
 
     document.querySelectorAll('[data-page-body]').forEach((el, i) => {
-      el.textContent = currentPages[i];
+      // Use innerHTML so saved formatting (bold/italic/underline/highlight) renders correctly
+      el.innerHTML = currentPages[i];
       wireEditableBody(el);
     });
 
@@ -407,7 +451,8 @@
   }
 
   function getFullContentFromPages() {
-    return Array.from(document.querySelectorAll('[data-page-body]')).map(el => el.textContent).join('');
+    // Use innerHTML to preserve bold/italic/underline/highlight formatting
+    return Array.from(document.querySelectorAll('[data-page-body]')).map(el => el.innerHTML).join('\n');
   }
 
   function updatePageIndicator(current, total) {
@@ -720,6 +765,7 @@
     if (!text) return;
     inputEl.value = '';
     sendBtn.disabled = true;
+    setKeoState('thinking');
 
     messages.push({ role: 'user', text });
     renderDialogue();
@@ -746,21 +792,33 @@
       messages.push({ role: 'assistant', text: replyText || '\u2026' });
       renderDialogue();
 
+      // Speak Keo's reply (first 2 sentences for brevity when a doc was saved)
+      const speakText = (data.document_saved || data.document_updated)
+        ? replyText.split(/[.!?]/).slice(0, 2).join('. ') + '.'
+        : replyText;
+      keoSpeak(speakText);
+
       if (data.document_saved && data.document_saved.ok) {
         await loadDocuments();
         await openDocument(data.document_saved.id);
         setMode(data.document_saved.mode, false);
+        // Save the document title to Keo's memory
+        fetch('/api/keo?resource=memory', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ category: 'document', content: 'Created document: "' + data.document_saved.title + '" (mode: ' + data.document_saved.mode + ')' }),
+        }).catch(() => {});
       }
       if (data.document_updated && data.document_updated.ok) {
         await loadDocuments();
         if (String(activeDocId) === String(data.document_updated.id)) {
-          // Re-fetch to show new content/version in place
           await openDocument(data.document_updated.id);
         }
       }
     } catch (err) {
       messages.push({ role: 'assistant', text: 'Connection error: ' + String(err) });
       renderDialogue();
+      setKeoState('present');
     } finally {
       sendBtn.disabled = false;
     }
@@ -776,8 +834,116 @@
 
   // ── Init ─────────────────────────────────────────────────────────────────
   loadDocuments();
-  console.log('Keo workspace loaded — all six modes active.');
+
+  // ── ElevenLabs voice ─────────────────────────────────────────────────────
+  const keoStateDot   = document.getElementById('keoStateDot');
+  const keoStateLabel = document.getElementById('keoStateLabel');
+
+  function setKeoState(state) {
+    const states = {
+      present:  { label: 'PRESENT',  color: 'rgba(200,196,240,0.85)' },
+      thinking: { label: 'THINKING', color: 'rgba(201,150,90,0.85)'  },
+      speaking: { label: 'SPEAKING', color: 'rgba(52,211,153,0.85)'  },
+    };
+    const s = states[state] || states.present;
+    keoStateDot.style.background = s.color;
+    keoStateDot.style.boxShadow  = `0 0 6px ${s.color}`;
+    keoStateLabel.textContent    = s.label;
+  }
+
+  async function keoSpeak(text) {
+    if (!text || !text.trim()) return;
+    // Strip markdown-like formatting for clean speech
+    const clean = text.replace(/\[KEO:[^\]]+\]/g, '').replace(/\*\*/g, '').replace(/\*/g, '').replace(/<[^>]+>/g, '').trim();
+    if (!clean) return;
+    try {
+      setKeoState('speaking');
+      const res = await fetch('/api/keo?resource=speak', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: clean.slice(0, 500) }), // cap spoken excerpt for brevity
+      });
+      if (!res.ok) { setKeoState('present'); return; }
+      const audioBuffer = await res.arrayBuffer();
+      const audioCtx   = new (window.AudioContext || window.webkitAudioContext)();
+      const decoded    = await audioCtx.decodeAudioData(audioBuffer);
+      const source     = audioCtx.createBufferSource();
+      source.buffer    = decoded;
+      source.connect(audioCtx.destination);
+      source.onended   = () => setKeoState('present');
+      source.start(0);
+    } catch (err) {
+      console.warn('Keo voice error:', err);
+      setKeoState('present');
+    }
+  }
+
+  // ── Paste modal ───────────────────────────────────────────────────────────
+  const pasteModalBg  = document.getElementById('pasteModalBg');
+  const pasteTitleEl  = document.getElementById('pasteTitleInput');
+  const pasteTextEl   = document.getElementById('pasteTextarea');
+
+  function openPasteModal() { pasteModalBg.classList.add('open'); pasteTextEl.focus(); }
+  function closePasteModal() { pasteModalBg.classList.remove('open'); pasteTextEl.value = ''; pasteTitleEl.value = ''; }
+
+  document.getElementById('ribbonPaste').addEventListener('click', openPasteModal);
+  document.getElementById('pasteModalClose').addEventListener('click', closePasteModal);
+  document.getElementById('pasteModalCancel').addEventListener('click', closePasteModal);
+
+  // Global Ctrl+V shortcut when no doc is open and no input is focused
+  document.addEventListener('keydown', (e) => {
+    const tag = document.activeElement?.tagName;
+    if (e.ctrlKey && e.key === 'v' && !activeDocId && tag !== 'INPUT' && tag !== 'TEXTAREA') {
+      openPasteModal();
+    }
+  });
+
+  document.getElementById('pasteModalConfirm').addEventListener('click', async () => {
+    const text = pasteTextEl.value.trim();
+    if (!text) return;
+    const title = pasteTitleEl.value.trim() || 'Pasted Content';
+    try {
+      const res = await fetch('/api/keo?resource=paste', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: text, title, mode: currentMode }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        closePasteModal();
+        await loadDocuments();
+        await openDocument(data.id);
+        // Auto-prompt Keo about the pasted content
+        const prompt = 'I just pasted content into the workspace titled "' + title + '". What would you like to do with it? You can format it, rewrite it, turn it into a screenplay, add your notes, or anything else — just tell me.';
+        messages.push({ role: 'assistant', text: prompt });
+        renderDialogue();
+        await keoSpeak(prompt);
+      }
+    } catch (err) {
+      console.error('Paste failed:', err);
+    }
+  });
+
+  console.log('Keo workspace v6 loaded — memory, voice, paste, screenplay, innerHTML save active.');
 </script>
+
+<!-- Paste modal -->
+<div class="paste-modal-bg" id="pasteModalBg">
+  <div class="paste-modal">
+    <div class="paste-modal-header">
+      <span>PASTE CONTENT INTO WORKSPACE</span>
+      <span class="paste-modal-close" id="pasteModalClose">&#10005;</span>
+    </div>
+    <div class="paste-modal-body">
+      <input class="paste-title-input" id="pasteTitleInput" type="text" placeholder="Document title (optional — Keo will suggest one if left blank)" />
+      <textarea class="paste-textarea" id="pasteTextarea" placeholder="Paste your content here — a script draft, article, email thread, notes, anything. Tell Keo in the chat what you want done with it."></textarea>
+    </div>
+    <div class="paste-modal-footer">
+      <button class="ribbon-action" id="pasteModalCancel">CANCEL</button>
+      <button class="ribbon-action" id="pasteModalConfirm" style="color:rgba(200,196,240,0.8);border-color:rgba(200,196,240,0.35);background:rgba(200,196,240,0.06);">SEND TO WORKSPACE</button>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>
